@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Paper Summarizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <style>
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto p-4 flex justify-between items-center">
+             <h1 class="text-2xl font-bold text-gray-800">Research Paper Summarizer</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4">
+        <section class="mb-8 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">1. Upload Research Papers (PDF)</h2>
+            <form id="uploadForm">
+                <div class="mb-4">
+                    <label for="files" class="block text-sm font-medium text-gray-600 mb-1">Select one or more PDF files</label>
+                    <input type="file" id="files" name="files" multiple accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <button type="submit" id="submitBtn" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-blue-300">Summarize</button>
+            </form>
+        </section>
+
+        <section class="mb-8 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">2. Review Summaries & Build a Project</h2>
+            <div class="flex items-center gap-4">
+                 <button id="loadSummariesBtn" class="bg-gray-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-gray-700 transition-colors">Load Previous Summaries</button>
+                 <div id="loading" class="hidden items-center gap-2">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div>
+                    <span class="text-gray-600">Processing...</span>
+                 </div>
+            </div>
+             <p id="error" class="text-red-500 mt-4 hidden"></p>
+        </section>
+
+        <section id="results" class="space-y-6"></section>
+    </main>
+    
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingDiv = document.getElementById('loading');
+        const errorP = document.getElementById('error');
+        const resultsDiv = document.getElementById('results');
+        const loadSummariesBtn = document.getElementById('loadSummariesBtn');
+
+        const displayError = (message) => {
+            errorP.textContent = message;
+            errorP.classList.remove('hidden');
+        };
+
+        const toggleLoading = (isLoading) => {
+            if (isLoading) {
+                submitBtn.disabled = true;
+                loadingDiv.classList.add('flex');
+                loadingDiv.classList.remove('hidden');
+                errorP.classList.add('hidden');
+            } else {
+                submitBtn.disabled = false;
+                loadingDiv.classList.remove('flex');
+                loadingDiv.classList.add('hidden');
+            }
+        };
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const files = document.getElementById('files').files;
+            if (files.length === 0) {
+                displayError('Please select at least one PDF file.');
+                return;
+            }
+
+            toggleLoading(true);
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append('files', file);
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/summarize', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to process files');
+                }
+                const results = await response.json();
+                displayResults(results);
+            } catch (error) {
+                displayError(`Error: ${error.message}`);
+            } finally {
+                toggleLoading(false);
+            }
+        });
+
+        const displayResults = (results) => {
+            resultsDiv.innerHTML = '';
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = '<p class="text-gray-600 bg-white p-6 rounded-lg shadow">No results to display.</p>';
+                return;
+            }
+            results.forEach(result => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'bg-white p-6 rounded-lg shadow-md';
+                
+                const ideasHtml = result.project_ideas.map(idea => `
+                    <li class="flex justify-between items-center py-2 border-b last:border-b-0">
+                        <span class="text-gray-800 pr-4">${idea}</span>
+                        <button class="build-btn flex-shrink-0 bg-green-500 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-green-600 transition-colors" data-idea="${idea}">Build</button>
+                    </li>
+                `).join('');
+
+                resultCard.innerHTML = `
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">${result.filename}</h3>
+                    <div class="mb-4">
+                        <h4 class="font-semibold text-gray-700">Summary</h4>
+                        <p class="text-gray-600">${result.summary}</p>
+                    </div>
+                    <div class="mb-4">
+                        <h4 class="font-semibold text-gray-700">Conclusion</h4>
+                        <p class="text-gray-600">${result.conclusion}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700">Website Project Ideas</h4>
+                        <ul class="list-none mt-2">${ideasHtml}</ul>
+                    </div>
+                `;
+                resultsDiv.appendChild(resultCard);
+            });
+            attachBuildListeners();
+        };
+
+        const attachBuildListeners = () => {
+            document.querySelectorAll('.build-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const idea = e.target.dataset.idea;
+                    e.target.disabled = true;
+                    e.target.textContent = 'Building...';
+
+                    try {
+                        const response = await fetch('http://localhost:8000/generate-website', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ idea })
+                        });
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.detail || 'Failed to generate website');
+                        }
+                        
+                        // **MODIFICATION**: The API now returns a complete object
+                        const { frontend, backend, instructions, project_idea } = await response.json();
+
+                        // Store everything in sessionStorage for the next page
+                        sessionStorage.setItem('frontend_index_html', frontend.index_html);
+                        sessionStorage.setItem('frontend_styles_css', frontend.styles_css);
+                        sessionStorage.setItem('frontend_script_js', frontend.script_js);
+                        sessionStorage.setItem('backend_app_py', backend);
+                        sessionStorage.setItem('instructions', instructions);
+                        sessionStorage.setItem('project_idea', project_idea);
+
+                        // Redirect to the builder page
+                        window.location.href = 'website.html';
+
+                    } catch (error) {
+                        displayError(`Error generating website: ${error.message}`);
+                        e.target.disabled = false;
+                        e.target.textContent = 'Build';
+                    }
+                });
+            });
+        };
+
+        loadSummariesBtn.addEventListener('click', async () => {
+            toggleLoading(true);
+            try {
+                const response = await fetch('http://localhost:8000/summaries');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to load summaries');
+                }
+                const results = await response.json();
+                displayResults(results);
+            } catch (error) {
+                displayError(`Error loading summaries: ${error.message}`);
+            } finally {
+                toggleLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>
