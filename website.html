@@ -10,8 +10,8 @@
         body, html { height: 100%; margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #f9fafb; }
         body { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
         main { display: grid; grid-template-rows: 55fr 45fr; gap: 1rem; padding: 1rem; overflow: auto; }
-        #preview-section, #bottom-section { min-height: 300px; }
-        #bottom-section { display: flex; gap: 1rem; flex-wrap: wrap; }
+        #preview-section { min-height: 300px; display: flex; flex-direction: column; }
+        #bottom-section { min-height: 400px; display: flex; gap: 1rem; flex-wrap: wrap; }
         .editor-box { flex: 1 1 200px; min-width: 200px; display: flex; flex-direction: column; border: 1px solid #d1d5db; border-radius: 8px; background: white; overflow: hidden; height: 100%; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); }
         .editor-header { background-color: #4f46e5; color: white; padding: 0.5rem 1rem; font-weight: 600; }
         .cm-editor { height: 100%; overflow: auto; }
@@ -87,7 +87,7 @@
                         keymap.of(defaultKeymap),
                         language(),
                         EditorView.updateListener.of((update) => {
-                            if (update.docChanged && parent.id.startsWith('html') || parent.id.startsWith('css') || parent.id.startsWith('js')) {
+                            if (update.docChanged && (parent.id.startsWith('html') || parent.id.startsWith('css') || parent.id.startsWith('js'))) {
                                 updatePreview();
                             }
                         }),
@@ -150,8 +150,7 @@
             const payload = { original_code, edit_request: editRequest };
 
             try {
-                // UPDATED: Changed to relative path for Vercel
-                const response = await fetch('/edit-code', {
+                const response = await fetch('/api/edit-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),

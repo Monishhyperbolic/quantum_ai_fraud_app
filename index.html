@@ -7,8 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
-        .loader { border-top-color: #3498db; animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -80,8 +85,7 @@
             }
 
             try {
-                // UPDATED: Changed to relative path for Vercel
-                const response = await fetch('/summarize', {
+                const response = await fetch('/api/summarize', {
                     method: 'POST',
                     body: formData
                 });
@@ -143,8 +147,7 @@
                     e.target.textContent = 'Building...';
 
                     try {
-                        // UPDATED: Changed to relative path for Vercel
-                        const response = await fetch('/generate-website', {
+                        const response = await fetch('/api/generate-website', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ idea })
@@ -163,7 +166,6 @@
                         sessionStorage.setItem('instructions', instructions);
                         sessionStorage.setItem('project_idea', project_idea);
 
-                        // Redirect to the builder page
                         window.location.href = 'website.html';
 
                     } catch (error) {
@@ -178,8 +180,7 @@
         loadSummariesBtn.addEventListener('click', async () => {
             toggleLoading(true);
             try {
-                // UPDATED: Changed to relative path for Vercel
-                const response = await fetch('/summaries');
+                const response = await fetch('/api/summaries');
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Failed to load summaries');

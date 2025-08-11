@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import PyPDF2
 import os
-import psycopg2 # Replaced sqlite3 with psycopg2
+import psycopg2 
 from groq import Groq
 from dotenv import load_dotenv
 import uuid
@@ -133,7 +133,7 @@ Given this website's source code and an edit request, modify the code to impleme
 
 
 # --- API Endpoints (Updated for Postgres) ---
-@app.post("/summarize")
+@app.post("/api/summarize")
 async def summarize_papers(files: list[UploadFile] = File(...)):
     results = []
     conn = None
@@ -145,7 +145,6 @@ async def summarize_papers(files: list[UploadFile] = File(...)):
                 summary, conclusion = generate_summary_and_conclusion(text)
                 project_ideas = generate_project_ideas(summary)
                 
-                # Store results in the database using %s for safe parameter substitution
                 cur.execute(
                     "INSERT INTO summaries (id, filename, summary, conclusion, project_ideas) VALUES (%s, %s, %s, %s, %s)",
                     (str(uuid.uuid4()), file.filename, summary, conclusion, "|".join(project_ideas))
@@ -153,14 +152,14 @@ async def summarize_papers(files: list[UploadFile] = File(...)):
                 results.append({"filename": file.filename, "summary": summary, "conclusion": conclusion, "project_ideas": project_ideas})
         conn.commit()
     except Exception as e:
-        logger.error(f"Error in /summarize endpoint: {e}")
+        logger.error(f"Error in /api/summarize endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
     finally:
         if conn:
             conn.close()
     return JSONResponse(content=results)
 
-@app.get("/summaries")
+@app.get("/api/summaries")
 async def get_summaries():
     conn = None
     try:
@@ -168,17 +167,16 @@ async def get_summaries():
         with conn.cursor() as cur:
             cur.execute("SELECT id, filename, summary, conclusion, project_ideas FROM summaries ORDER BY filename")
             rows = cur.fetchall()
-        # The structure of `rows` is the same, so this part is unchanged
         summaries = [{"filename": r[1], "summary": r[2], "conclusion": r[3], "project_ideas": r[4].split("|") if r[4] else []} for r in rows]
     except Exception as e:
-        logger.error(f"Error in /summaries endpoint: {e}")
+        logger.error(f"Error in /api/summaries endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
     finally:
         if conn:
             conn.close()
     return JSONResponse(content=summaries)
 
-@app.post("/generate-website")
+@app.post("/api/generate-website")
 async def generate_website_code_api(data: dict):
     project_idea = data.get("idea")
     if not project_idea:
@@ -187,7 +185,7 @@ async def generate_website_code_api(data: dict):
     result["project_idea"] = project_idea
     return JSONResponse(content=result)
 
-@app.post("/edit-code")
+@app.post("/api/edit-code")
 async def edit_code_api(data: dict):
     original_code = data.get("original_code")
     edit_request = data.get("edit_request")
