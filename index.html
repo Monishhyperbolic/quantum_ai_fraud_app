@@ -7,13 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
-        .loader {
-            border-top-color: #3498db;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .loader { border-top-color: #3498db; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -64,16 +59,10 @@
         };
 
         const toggleLoading = (isLoading) => {
-            if (isLoading) {
-                submitBtn.disabled = true;
-                loadingDiv.classList.add('flex');
-                loadingDiv.classList.remove('hidden');
-                errorP.classList.add('hidden');
-            } else {
-                submitBtn.disabled = false;
-                loadingDiv.classList.remove('flex');
-                loadingDiv.classList.add('hidden');
-            }
+            submitBtn.disabled = isLoading;
+            loadingDiv.classList.toggle('hidden', !isLoading);
+            loadingDiv.classList.toggle('flex', isLoading);
+            if (isLoading) errorP.classList.add('hidden');
         };
 
         uploadForm.addEventListener('submit', async (e) => {
@@ -91,7 +80,8 @@
             }
 
             try {
-                const response = await fetch('http://localhost:8000/summarize', {
+                // UPDATED: Changed to relative path for Vercel
+                const response = await fetch('/summarize', {
                     method: 'POST',
                     body: formData
                 });
@@ -153,7 +143,8 @@
                     e.target.textContent = 'Building...';
 
                     try {
-                        const response = await fetch('http://localhost:8000/generate-website', {
+                        // UPDATED: Changed to relative path for Vercel
+                        const response = await fetch('/generate-website', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ idea })
@@ -163,10 +154,8 @@
                             throw new Error(errorData.detail || 'Failed to generate website');
                         }
                         
-                        // **MODIFICATION**: The API now returns a complete object
                         const { frontend, backend, instructions, project_idea } = await response.json();
 
-                        // Store everything in sessionStorage for the next page
                         sessionStorage.setItem('frontend_index_html', frontend.index_html);
                         sessionStorage.setItem('frontend_styles_css', frontend.styles_css);
                         sessionStorage.setItem('frontend_script_js', frontend.script_js);
@@ -189,7 +178,8 @@
         loadSummariesBtn.addEventListener('click', async () => {
             toggleLoading(true);
             try {
-                const response = await fetch('http://localhost:8000/summaries');
+                // UPDATED: Changed to relative path for Vercel
+                const response = await fetch('/summaries');
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Failed to load summaries');
